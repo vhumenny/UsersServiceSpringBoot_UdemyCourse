@@ -38,13 +38,13 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
             byte[] inputStreamBytes = StreamUtils.copyToByteArray(req.getInputStream());
             Map<String, String> jsonRequest = new ObjectMapper().readValue(inputStreamBytes, Map.class);
 
-            UserLoginRequestModel creds = new ObjectMapper()
-                    .readValue(jsonRequest.get("body"), UserLoginRequestModel.class);
+//            UserLoginRequestModel creds = new ObjectMapper()
+//                    .readValue(jsonRequest.get("body"), UserLoginRequestModel.class);
 
             return authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            creds.getEmail(),
-                            creds.getPassword(),
+                            jsonRequest.get("email"),
+                            jsonRequest.get("password"),
                             new ArrayList<>())
             );
 

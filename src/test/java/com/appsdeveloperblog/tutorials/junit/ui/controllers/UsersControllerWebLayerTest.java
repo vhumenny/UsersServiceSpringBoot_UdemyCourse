@@ -8,6 +8,7 @@ import com.appsdeveloperblog.tutorials.junit.ui.response.UserRest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.modelmapper.ModelMapper;
@@ -28,36 +29,42 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-@WebMvcTest(controllers = UsersController.class,
-excludeAutoConfiguration = {SecurityAutoConfiguration.class})
+@WebMvcTest(controllers = UsersController.class, excludeAutoConfiguration = {SecurityAutoConfiguration.class})
 //@AutoConfigureMockMvc(addFilters = false)
 //@MockBean({UsersServiceImpl.class})
 public class UsersControllerWebLayerTest {
-
     @Autowired
     private MockMvc mockMvc;
 
     @MockBean
-    //@Autowired
+//    @Autowired
     UsersService usersService;
+
+    UserDetailsRequestModel userDetailsRequestModel;
+
+    @BeforeEach
+    void beforeEachTestMethod() {
+        userDetailsRequestModel = new UserDetailsRequestModel();
+        userDetailsRequestModel.setLastName("Gumennyi");
+        userDetailsRequestModel.setEmail("email@test.com");
+        userDetailsRequestModel.setPassword("12345678");
+        userDetailsRequestModel.setRepeatPassword("12345678");
+    }
+
 
     @Test
     @DisplayName("User can be created")
     void testCreateUser_whenValidUserDetailsProvided_returnsCreatedUserDetails() throws Exception {
-        // Arrange
-        UserDetailsRequestModel userDetailsRequestModel = new UserDetailsRequestModel();
-        userDetailsRequestModel.setFirstName("Sergey");
-        userDetailsRequestModel.setLastName("Kargopolov");
-        userDetailsRequestModel.setEmail("email@test.com");
-        userDetailsRequestModel.setPassword("12345678");
-        userDetailsRequestModel.setRepeatPassword("12345678");
+        //Arrange
+
+        userDetailsRequestModel.setFirstName("Vladimir");
+
 
 //        UserDto userDto = new UserDto();
-//        userDto.setFirstName("Sergey");
-//        userDto.setLastName("Kargopolov");
+//        userDto.setFirstName("Vladimir");
+//        userDto.setLastName("Gumennyi");
 //        userDto.setEmail("email");
 //        userDto.setUserId(UUID.randomUUID().toString());
-
         UserDto userDto = new ModelMapper().map(userDetailsRequestModel, UserDto.class);
         userDto.setUserId(UUID.randomUUID().toString());
         when(usersService.createUser(any(UserDto.class))).thenReturn(userDto);
@@ -66,52 +73,56 @@ public class UsersControllerWebLayerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .content(new ObjectMapper().writeValueAsString(userDetailsRequestModel));
-
-        // Act
+        //Act
         MvcResult mvcResult = mockMvc.perform(requestBuilder).andReturn();
         String responseBodyAsString = mvcResult.getResponse().getContentAsString();
-        UserRest createdUser = new ObjectMapper()
-                .readValue(responseBodyAsString, UserRest.class);
+        UserRest createdUser = new ObjectMapper().readValue(responseBodyAsString, UserRest.class);
 
-        // Assert
-        Assertions.assertEquals(userDetailsRequestModel.getFirstName(),
-                createdUser.getFirstName(), "The returned user first name is most likely incorrect");
-
-        Assertions.assertEquals(userDetailsRequestModel.getLastName(),
-                createdUser.getLastName(), "The returned user last name is incorrect");
-
-        Assertions.assertEquals(userDetailsRequestModel.getEmail(),
-                createdUser.getEmail(), "The returned user email is incorrect");
-
-        Assertions.assertFalse(createdUser.getUserId().isEmpty(), "userId should not be empty");
-
+        //Assert
+        Assertions.assertEquals(userDetailsRequestModel.getFirstName(), createdUser.getFirstName(),
+                "The returned user first name is most likely incorrect.");
+        Assertions.assertEquals(userDetailsRequestModel.getLastName(), createdUser.getLastName(),
+                "The returned user last name is most likely incorrect.");
+        Assertions.assertEquals(userDetailsRequestModel.getEmail(), createdUser.getEmail(),
+                "The returned user email is most likely incorrect.");
+        Assertions.assertFalse(createdUser.getUserId().isEmpty(), "User id should not be empty");
     }
 
     @Test
-    @DisplayName("First name is not empty")
+    @DisplayName("First name is not empty.")
     void testCreateUser_whenFirstNameIsNotProvided_returns400StatusCode() throws Exception {
-        // Arrange
-        UserDetailsRequestModel userDetailsRequestModel = new UserDetailsRequestModel();
+        //Arrange
         userDetailsRequestModel.setFirstName("");
-        userDetailsRequestModel.setLastName("Kargopolov");
-        userDetailsRequestModel.setEmail("email@test.com");
-        userDetailsRequestModel.setPassword("12345678");
-        userDetailsRequestModel.setRepeatPassword("12345678");
 
         RequestBuilder requestBuilder = MockMvcRequestBuilders.post("/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .content(new ObjectMapper().writeValueAsString(userDetailsRequestModel));
 
-        // Act
+        //Act
         MvcResult mvcResult = mockMvc.perform(requestBuilder).andReturn();
 
-        // Assert
+        //Assert
         Assertions.assertEquals(HttpStatus.BAD_REQUEST.value(),
                 mvcResult.getResponse().getStatus(),
-                "Incorrect HTTP Status Code returned");
-
-
+                "incorrect http status code returned");
     }
 
+    @Test
+    @DisplayName("First name is smaller than 2 symbols.")
+    void testCreateUser_whenFirstNameIsSmallerThanRequired_returns400StatusCode() throws Exception {
+        //Arrange
+        userDetailsRequestModel.setFirstName("a");
+        RequestBuilder requestBuilder = MockMvcRequestBuilders.post("/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .content(new ObjectMapper().writeValueAsString(userDetailsRequestModel));
+        //Act
+        MvcResult mvcResult = mockMvc.perform(requestBuilder).andReturn();
+
+        //Assert
+        Assertions.assertEquals(HttpStatus.BAD_REQUEST.value(),
+                mvcResult.getResponse().getStatus(),
+                "incorrect http status code returned");
+    }
 }
